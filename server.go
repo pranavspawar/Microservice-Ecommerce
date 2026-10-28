@@ -33,6 +33,7 @@ import (
 
 	"cloud.google.com/go/profiler"
 	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/grpc/reflection"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -148,6 +149,8 @@ func run(port string) string {
 
 	pb.RegisterProductCatalogServiceServer(srv, svc)
 	healthpb.RegisterHealthServer(srv, svc)
+	reflection.Register(srv)
+	
 	go srv.Serve(l)
 	return l.Addr().String()
 }
