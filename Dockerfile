@@ -1,26 +1,26 @@
-FROM golang:1.26 AS builder 
+
+
+FROM node:20-alpine AS builder
 
 WORKDIR /app
- 
-COPY go.mod go.sum ./
 
-RUN go mod download
+RUN apk add --no-cache python3 make g++
+
+COPY package*.json ./
+
+RUN npm ci --omit=dev
+
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app/node_modules ./node_modules
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o /app/server .
+EXPOSE 7000
 
-#------RUNTIME-----
-
-FROM alpine:3.22
-
-WORKDIR /app
-
-COPY --from=builder /app/server ./server
-
-COPY products.json .
-
-EXPOSE 3550
-
-ENTRYPOINT ["/app/server"]
-
+CMD ["node", "server.js"]
