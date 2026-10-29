@@ -6,15 +6,13 @@ RUN apk add build-base
 WORKDIR /src
 
 
-COPY go.mod go.sum ./
+COPY . .
 RUN go mod download
 
-COPY . .
-
 ARG SKAFFOLD_GO_GCFLAGS
-RUN go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -o /checkoutservice .
+RUN go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -o /checkoutservice ./
 
-FROM alpine:3.20 as without-grpc-health-probe-bin
+FROM alpine:3.20 AS without-grpc-health-probe-bin
 RUN apk add --no-cache ca-certificates
 
 WORKDIR /src
