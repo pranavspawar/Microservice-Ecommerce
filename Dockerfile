@@ -1,0 +1,49 @@
+
+# Base image
+FROM python:3.10-slim-bookworm AS base
+
+# Builder stage
+FROM base AS builder
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        wget \
+        g++ && \
+    rm -rf /var/lib/apt/lists/*
+
+# Download gRPC health probe
+ENV GRPC_HEALTH_PROBE_VERSION=v0.4.18
+
+RUN wget -qO /bin/grpc_health_probe \
+    https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    chmod +x /bin/grpc_health_probe
+
+# Install Python dependencies
+WORKDIR /build
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Runtime stage without health probe
+FROM base AS without-grpc-health-probe-bin
+
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8080
+
+WORKDIR /recommendationservice
+
+# Copy installed Python packages
+COPY --from=builder /usr/local/lib/python3.10/ /usr/local/lib/python3.10/
+
+# Copy application source
+COPY . .
+
+EXPOSE 8080
+
+ENTRYPOINT ["python", "recommendation_server.py"]
+
+# Final stage with health probe
+FROM without-grpc-health-probe-bin AS final
+
+COPY --from=builder /bin/grpc_health_probe /bin/grpc_health_probe
